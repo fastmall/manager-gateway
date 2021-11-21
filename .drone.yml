@@ -1,0 +1,73 @@
+kind: pipeline
+name: default
+type: docker
+
+platform:
+  os: linux
+  arch: amd64
+
+clone:
+  depth: 1
+
+node:
+  cloud: tencent
+  location: hongkong
+
+volumes:
+  - name: cache
+    host:
+      path: /var/docker/drone-runner/cache/gomod
+
+
+steps:
+  - name: build
+    image: golang:alpine
+    volumes:
+      - name: cache
+        path: /go/pkg/mod
+    commands:
+      - apk update && apk add --no-cache git build-base tzdata
+      - go mod download
+      - buildflags="-X 'main.BuildTime=`TZ=\"Asia/Shanghai\" date -Iseconds`' -X 'main.GitMessage=`git --no-pager log -1 --oneline`' -X 'main.GoVersion=$(go version)'" && go build -ldflags "$buildflags" -o app
+
+  - name: docker-build-push
+    image: plugins/docker
+    when:
+      branch:
+        - master
+        - main
+    settings:
+      repo:  registry.cn-hongkong.aliyuncs.com/fastmall/manager-gateway
+      tags: latest
+      registry: registry.cn-hongkong.aliyuncs.com
+      username:
+        from_secret: registry-username
+      password:
+        from_secret: registry-password
+
+  - name: ssh-deploy
+    image: appleboy/drone-ssh
+    environment:
+      username:
+        from_secret: registry-username
+      password:
+        from_secret: registry-password
+    when:
+      branch:
+        - master
+        - main
+    settings:
+      host: bj.jeongen.com
+      username: root
+      port: 22
+      key:
+        from_secret: ssh_key
+      script:
+        - cd /var/docker/fastmall
+        - echo "docker login"
+        - docker login --username=${username} -p ${password} registry.cn-hongkong.aliyuncs.com
+        - echo "pulling image"
+        - docker-compose pull -q manager-gateway
+        - docker-compose rm -s -f manager-gateway && docker-compose up -d manager-gateway
+        - sleep 5
+        - docker-compose logs --tail=200

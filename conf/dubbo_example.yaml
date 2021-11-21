@@ -1,0 +1,30 @@
+dubbo:
+  registries:
+    etcd:
+      protocol: etcdv3
+      address: xxx:2379
+  consumer:
+    references:
+      CustomerServiceClientImpl:
+        protocol: tri
+        interface: com.jeongen.fastmall.customer.CustomerService
+      GoodsServiceClientImpl:
+        protocol: tri
+        interface: com.jeongen.fastmall.goods.GoodsService
+      CartServiceClientImpl:
+        protocol: tri
+        interface: com.jeongen.fastmall.cart.CartService
+      OrderServiceClientImpl:
+        protocol: tri
+        interface: com.jeongen.fastmall.order.OrderService
+
+  application:
+    organization: fastmall
+    name: manager-gateway
+    environment: prod
+
+    version: 3.0.0-rc3
+  metrics:
+    enable: true # default is true
+    path: /metrics # default is /metrics
+    port: 9091 # default is 9090
