@@ -4,6 +4,7 @@ import (
 	"dubbo.apache.org/dubbo-go/v3/common/logger"
 	"fmt"
 	"github.com/fastmall/manager-gateway/route"
+	"github.com/gin-contrib/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,6 +22,7 @@ var (
 
 func startHttp() {
 	r := gin.Default()
+	pprof.Register(r)
 	route.SetCustomerRoute(r)
 	route.SetGoodsRoute(r)
 	route.SetCartRoute(r)
